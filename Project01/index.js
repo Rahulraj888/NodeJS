@@ -8,6 +8,19 @@ const app = express();
 //middleware
 app.use(express.urlencoded({ extended: false }));
 
+app.use((req, res, next) => {
+    console.log("Middleware 1");
+    next();
+});
+
+app.use((req, res, next) => {
+    let msg = `${Date.now()}: ${req.path} ${req.method}`;
+    fs.appendFile("logs.txt", msg, (err, data) => {
+        console.log("Middleware 2");
+        next();
+    })
+});
+
 app.get("/", (req, res) => {
     res.send(`Hello World!`);
 })
