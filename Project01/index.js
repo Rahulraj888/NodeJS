@@ -1,9 +1,38 @@
 const express = require("express");
 const users = require("./MOCK_DATA.json");
+const mongoose = require("mongoose");
 const fs = require("fs");
 
 const PORT = 8000;
 const app = express();
+
+mongoose
+  .connect("mongodb://127.0.0.1:27017/youtube-app-1")
+  .then(() => console.log("Mongo Db connected"))
+  .catch((err) => console.log(`error in connecting to DB ${err}`));
+
+const userSchema = new mongoose.Schema({
+  firstName: {
+    type: String,
+    required: true,
+  },
+  lastName: {
+    type: String,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+  },
+  jobTitle: {
+    type: String,
+  },
+  gender: {
+    type: String,
+  },
+}, {timestamps: true});
+
+const User = mongoose.model("user", userSchema);
 
 //middleware
 app.use(express.urlencoded({ extended: false }));
@@ -29,16 +58,22 @@ app.get("/", (req, res) => {
   res.send(`Hello World!`);
 });
 
-app.get("/api/users", (req, res) => {
-  res.setHeader("myName", "Rahul");
-  res.json(users);
+app.get("/api/users", async(req, res) => {
+//   res.setHeader("myName", "Rahul");
+//   res.json(users);
+    const allUsers = await User.find({});
+    res.status(200).json(allUsers);
 });
 
-app.get("/users", (req, res) => {
-  let html = `<ul>${users
-    .map((user) => `<li>${user.first_name}</li>`)
-    .join("")}</ul>`;
-  res.send(html);
+app.get("/users", async(req, res) => {
+//   let html = `<ul>${users
+//     .map((user) => `<li>${user.first_name}</li>`)
+//     .join("")}</ul>`;
+//   res.send(html);
+
+    const allUsers = await User.find({});
+    let html = `<ul>${allUsers.map((user) => `<li>${user.firstName}- ${user.email}</li>`).join("")}</ul>`;
+    res.send(html);
 });
 
 
@@ -46,39 +81,54 @@ app.get("/users", (req, res) => {
 // different methods on same route
 app
   .route("/api/users/:id")
-  .get((req, res) => {
-    const id = Number(req.params.id);
-    const user = users.find((user) => user.id === id);
-    
-    if (!user) res.status(404).json({"msg": "user not found"});
-    res.json(user);
+  .get(async(req, res) => {
+    // const id = Number(req.params.id);
+    // const user = users.find((user) => user.id === id);
+    const user = await User.findById(req.params.id);
+    if (!user) res.status(404).json({ msg: "user not found" });
+    res.status(200).json(user);
   })
-  .post((req, res) => {
-    //TODO -- create post request
-    return res.status(201).json({ status: "pending" });
+  .patch(async(req, res) => {
+    await User.findByIdAndUpdate(req.params.id, {lastName: "changed"})
+    return res.json({ msg: "success" });
   })
-  .patch((req, res) => {
-    // TODO create patch request
-    return res.json({ status: "pending" });
-  })
-  .delete((req, res) => {
-    // TODO create delete request
-    return res.json({ status: "pending" });
+  .delete(async(req, res) => {
+    await User.findByIdAndDelete(req.params.id);
+    return res.json({ msg: "success" });
   });
 
 
 
-app.post("/api/users", (req, res) => {
+app.post("/api/users", async(req, res) => {
   const body = req.body;
-  if (!body || !body.first_name || !body.last_name || !body.email || !body.gender || !body.job_title) {
-    res.status(400).json({"message": "All fields are required"});
+  if (
+    !body ||
+    !body.first_name ||
+    !body.last_name ||
+    !body.email ||
+    !body.gender ||
+    !body.job_title
+  ) {
+    res.status(400).json({ message: "All fields are required" });
   }
-  users.push({ ...body, id: users.length + 1 });
-  fs.writeFile("./MOCK_DATA.json", JSON.stringify(users), (err, data) => {
-    if (err) res.json({ status: "failed to add user" });
-    return res.status(201).json({ status: "successful", id: users.length });
+
+//   users.push({ ...body, id: users.length + 1 });
+//   fs.writeFile("./MOCK_DATA.json", JSON.stringify(users), (err, data) => {
+//     if (err) res.json({ status: "failed to add user" });
+//     return res.status(201).json({ status: "successful", id: users.length });
+//   });
+
+  const user = await User.create({
+    firstName: body.first_name,
+    lastName: body.last_name,
+    email: body.email,
+    gender: body.gender,
+    jobTitle: body.job_title
   });
+  console.log(`user created ${user}`);
+  res.status(201).json({"msg": "user created successfully"});
 });
+
 
 
 app.listen(PORT, () => {
