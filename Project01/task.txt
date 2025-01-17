@@ -15,3 +15,12 @@ PATCH api/user/1 - Edit the user with ID 1.
 DELETE api/users/1 - Delete the User with ID 1.
 
 
+controllers - user.js
+
+middlewares - index.js
+
+routes - user.js
+
+model - user.js
+
+connection.js
