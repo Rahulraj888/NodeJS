@@ -7,6 +7,7 @@ const app = express();
 
 //middleware
 app.use(express.urlencoded({ extended: false }));
+app.use(express.json({ extended: false }));
 
 app.use((req, res, next) => {
   console.log(req.headers);
@@ -48,11 +49,13 @@ app
   .get((req, res) => {
     const id = Number(req.params.id);
     const user = users.find((user) => user.id === id);
+    
+    if (!user) res.status(404).json({"msg": "user not found"});
     res.json(user);
   })
   .post((req, res) => {
     //TODO -- create post request
-    return res.json({ status: "pending" });
+    return res.status(201).json({ status: "pending" });
   })
   .patch((req, res) => {
     // TODO create patch request
@@ -67,10 +70,13 @@ app
 
 app.post("/api/users", (req, res) => {
   const body = req.body;
+  if (!body || !body.first_name || !body.last_name || !body.email || !body.gender || !body.job_title) {
+    res.status(400).json({"message": "All fields are required"});
+  }
   users.push({ ...body, id: users.length + 1 });
   fs.writeFile("./MOCK_DATA.json", JSON.stringify(users), (err, data) => {
     if (err) res.json({ status: "failed to add user" });
-    return res.json({ status: "successful", id: users.length });
+    return res.status(201).json({ status: "successful", id: users.length });
   });
 });
 
